@@ -3,7 +3,10 @@ package com.edw.controller;
 import com.edw.bean.Hello;
 import com.edw.bean.Users;
 import com.edw.service.UserService;
+import org.eclipse.microprofile.faulttolerance.Fallback;
 import org.eclipse.microprofile.faulttolerance.Retry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
@@ -22,6 +25,7 @@ import java.io.IOException;
 @Path("/")
 public class HelloWorldController {
 
+    private Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @Inject
     UserService userService;
 
@@ -39,12 +43,21 @@ public class HelloWorldController {
     @GET
     @Path("/user/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Retry(maxRetries = 4, retryOn= IOException.class)
+    @Retry(maxRetries = 1, retryOn= IOException.class)
+    @Fallback(fallbackMethod = "getEmptyUser")
     public Response getUser(@PathParam("id") Integer id) throws IOException {
         Users users = userService.getUser(id);
         return Response
                 .status(200)
                 .entity(users)
+                .build();
+    }
+
+    public Response getEmptyUser(Integer id) throws IOException {
+        logger.debug("==== giving default response ====");
+        return Response
+                .status(200)
+                .entity(new Users())
                 .build();
     }
 }
